@@ -24,7 +24,7 @@ class Kraken:
 
     URL_KEY = "url"
 
-    KRAKEN_BASE_URL = "https://krakenfiles.com"
+    KRAKEN_BASE_URL = "https://s3.krakenfiles.com"
 
     def __init__(self, session: requests.Session = requests.session()):
         self.session = session
@@ -46,18 +46,30 @@ class Kraken:
             raise HashNotFoundException(f"Hash not found for page_link: {page_link}")
 
         dl_hash = hashes[0]
-
-        payload = f'------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name="token"\r\n\r\n{token}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--'
         headers = {
-            **self._base_headers,
-            "hash": dl_hash,
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0',
+            'Accept': '*/*',
+            'Accept-Language': 'nl,en-US;q=0.7,en;q=0.3',
+            # 'Accept-Encoding': 'gzip, deflate, br',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Origin': 'https://krakenfiles.com',
+            'Connection': 'keep-alive',
+            'Referer': 'https://krakenfiles.com/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-site',
+            # Requests doesn't support trailers
+            # 'TE': 'trailers',
         }
 
-        dl_link_resp = self.session.post(
-            f"{self.KRAKEN_BASE_URL}/download/{hash}", data=payload, headers=headers
-        )
-        dl_link_json = dl_link_resp.json()
+        data = {
+            'token': token,
+        }
 
+        dl_link_resp = self.session.post(f"{self.KRAKEN_BASE_URL}/download/{dl_hash}", headers=headers, data=data)
+
+        dl_link_json = dl_link_resp.json()
+        
         if self.URL_KEY in dl_link_json:
             return dl_link_json[self.URL_KEY]
         else:
